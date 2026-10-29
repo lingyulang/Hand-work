@@ -154,6 +154,7 @@ def main():
             if params.pinch_rise:               # 捏合上升沿 -> 切换花色
                 palette_name = flower.cycle_palette()
                 flower.refresh_assets()          # 背景色同步换
+                ui.invalidate()
 
             # ================= 渲染层 =================
             panel = flower.render_multi(params.render_items, t=now)
@@ -192,14 +193,17 @@ def main():
             elif key in (ord('s'), ord('S')):
                 smooth_on = not smooth_on
                 mapper.set_smoother(make_smoother(smoother_kind if smooth_on else "off", cfg))
+                ui.invalidate()
                 print(f"[切换] 平滑: {'开启' if smooth_on else '关闭'}")
             elif key in (ord('m'), ord('M')):
                 smoother_kind = "ema" if smoother_kind == "kalman" else "kalman"
                 mapper.set_smoother(make_smoother(smoother_kind if smooth_on else "off", cfg))
+                ui.invalidate()
                 print(f"[切换] 平滑算法: {smoother_kind}")
             elif key in (ord('c'), ord('C')):
                 palette_name = flower.cycle_palette()
                 flower.refresh_assets()
+                ui.invalidate()
             elif key in (ord('p'), ord('P')):
                 if pose is None:
                     pose = PoseTracker(cfg.POSE_MODEL_COMPLEXITY,
@@ -209,6 +213,7 @@ def main():
                     pose.close()
                     pose = None
                     print("[切换] 手臂姿态: 关闭")
+                ui.invalidate()
             elif key in (ord('h'), ord('H')):
                 show_help = not show_help
 
