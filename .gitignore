@@ -1,0 +1,20 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# ===== 虚拟环境 =====
+.venv/
+venv/
+
+# ===== 打包产物（exe 由 GestureFlower.spec 现场构建，不入库） =====
+build/
+dist/
+
+# ===== 运行期临时产物 =====
+*.log
+
+# ===== IDE =====
+.idea/
+.vscode/

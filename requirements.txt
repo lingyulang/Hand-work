@@ -1,0 +1,7 @@
+# 隔空手势动态交互系统（五瓣花盛开）依赖
+# Python 3.8+ (推荐 3.10~3.12)
+# 注意：请在纯英文路径下创建虚拟环境（MediaPipe 不支持中文路径）
+mediapipe==0.10.21       # 自带 opencv-contrib-python，请勿另装 opencv-python
+numpy==1.26.4            # mediapipe 0.10.21 要求 numpy<2
+matplotlib>=3.7          # 仅评估脚本生成图表需要
+pillow>=10.0             # 中文文本绘制
