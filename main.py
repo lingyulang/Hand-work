@@ -87,6 +87,7 @@ def main():
     print("=" * 56)
     print("  隔空手势动态交互系统 —— 五瓣花盛开")
     print("  握拳=花苞  张开=盛开  捏合=换花色  双手=双花各手控一朵")
+    print("  手部21点骨骼 + 手臂骨骼(肩肘腕) 实时叠加")
     print("=" * 56)
 
     source = VideoSource(args)
@@ -96,8 +97,10 @@ def main():
         max_num_hands=cfg.HAND_MAX_NUM,
         det_conf=cfg.HAND_DET_CONF,
         track_conf=cfg.HAND_TRACK_CONF,
+        model_complexity=cfg.HAND_MODEL_COMPLEXITY,
     )
-    pose = PoseTracker(cfg.POSE_MODEL_COMPLEXITY) if args.pose else None
+    pose = PoseTracker(cfg.POSE_MODEL_COMPLEXITY, cfg.POSE_INPUT_W,
+                       cfg.POSE_CADENCE) if (args.pose or cfg.POSE_ENABLE_DEFAULT) else None
     mapper = GestureMapper(cfg, make_smoother(args.smoother, cfg))
     flower = FlowerRenderer(
         w=cfg.WINDOW_W - cfg.CAM_PANEL_W,
@@ -150,7 +153,7 @@ def main():
             params = mapper.update(feats, dt)
             if params.pinch_rise:               # 捏合上升沿 -> 切换花色
                 palette_name = flower.cycle_palette()
-                flower._bg = flower._make_background()  # 背景色同步换
+                flower.refresh_assets()          # 背景色同步换
 
             # ================= 渲染层 =================
             panel = flower.render_multi(params.render_items, t=now)
@@ -181,7 +184,9 @@ def main():
                          params.bloom_target, feats.n_hands, smooth_on)
 
             cv2.imshow(win_name, view)
-            key = cv2.waitKey(1) & 0xFF
+            # pollKey 非阻塞处理 UI 事件（Windows 上 waitKey(1) 每帧白等 ~10-15ms）
+            _poll = getattr(cv2, "pollKey", None)
+            key = (_poll() if _poll else cv2.waitKey(1)) & 0xFF
             if key in (ord('q'), ord('Q'), 27):
                 break
             elif key in (ord('s'), ord('S')):
@@ -194,10 +199,11 @@ def main():
                 print(f"[切换] 平滑算法: {smoother_kind}")
             elif key in (ord('c'), ord('C')):
                 palette_name = flower.cycle_palette()
-                flower._bg = flower._make_background()
+                flower.refresh_assets()
             elif key in (ord('p'), ord('P')):
                 if pose is None:
-                    pose = PoseTracker(cfg.POSE_MODEL_COMPLEXITY)
+                    pose = PoseTracker(cfg.POSE_MODEL_COMPLEXITY,
+                                       cfg.POSE_INPUT_W, cfg.POSE_CADENCE)
                     print("[切换] 手臂姿态: 开启")
                 else:
                     pose.close()

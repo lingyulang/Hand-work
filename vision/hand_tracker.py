@@ -21,13 +21,18 @@ MP_STYLES = mp.solutions.drawing_styles
 class HandTracker:
     """封装 MediaPipe Hands，提供 process / draw 接口。"""
 
-    def __init__(self, max_num_hands=2, det_conf=0.6, track_conf=0.5):
+    def __init__(self, max_num_hands=2, det_conf=0.6, track_conf=0.5,
+                 model_complexity=1):
         self.hands = MP_HANDS.Hands(
             static_image_mode=False,       # 视频流模式，启用内部追踪
             max_num_hands=max_num_hands,
+            model_complexity=model_complexity,  # 0=轻量(推荐) 1=完整
             min_detection_confidence=det_conf,
             min_tracking_confidence=track_conf,
         )
+        # 绘制样式只需构建一次（逐帧重建 dict 有可观开销）
+        self._lm_style = MP_STYLES.get_default_hand_landmarks_style()
+        self._conn_style = MP_STYLES.get_default_hand_connections_style()
 
     def process(self, frame_bgr):
         """输入 BGR 帧，返回 MultiHandLandmarks 列表（可能为空）。"""
@@ -40,11 +45,8 @@ class HandTracker:
         """在帧上绘制 21 点骨架连线（就地修改并返回）。"""
         for lm in hand_landmarks_list:
             MP_DRAW.draw_landmarks(
-                frame_bgr,
-                lm,
-                MP_HANDS.HAND_CONNECTIONS,
-                MP_STYLES.get_default_hand_landmarks_style(),
-                MP_STYLES.get_default_hand_connections_style(),
+                frame_bgr, lm, MP_HANDS.HAND_CONNECTIONS,
+                self._lm_style, self._conn_style,
             )
         return frame_bgr
 

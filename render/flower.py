@@ -43,8 +43,20 @@ class FlowerRenderer:
         self.scale_base = scale_base
         self.particles = ParticleSystem()
         self._glow = self._make_glow_sprite()
+        self._glow_bgr = self._tint_glow()
         self._bg = self._make_background()
         self._sways = [0.0, 0.0]  # 每朵花独立的摆动平滑值（最多双花）
+
+    def refresh_assets(self):
+        """换花色后重建背景与光晕贴图（供按键切换时调用）。"""
+        self._bg = self._make_background()
+        self._glow_bgr = self._tint_glow()
+
+    def _tint_glow(self):
+        """把光晕精灵按当前花色预染成 3 通道 BGR（免去每帧浮点混合）。"""
+        tint = np.array(self.palette[1], np.float32) / 255.0 * 0.9
+        bgr = (self._glow[..., None].astype(np.float32) * tint[None, None, :])
+        return np.clip(bgr, 0, 255).astype(np.uint8)
 
     # ---------------- 调色板 ----------------
     @property
@@ -166,18 +178,17 @@ class FlowerRenderer:
         stem_base_x = w * home_x
         stem_base_y = h - 8
 
-        # ---- 光晕（盛开时） ----
+        # ---- 光晕（盛开时，预染色贴图 + cv2.add 饱和叠加） ----
         if bloom > 0.45:
             g = max(16, int((140 + 170 * bloom) * base))  # 下限保护：缩放<1时不得为0
-            glow = cv2.resize(self._glow, (g, g))
+            glow = cv2.resize(self._glow_bgr, (g, g))
             gx, gy = int(cx - g / 2), int(cy - g / 2)
             x0, y0 = max(0, gx), max(0, gy)
             x1, y1 = min(w, gx + g), min(h, gy + g)
             if x1 > x0 and y1 > y0:
-                roi = canvas[y0:y1, x0:x1].astype(np.float32)
-                spr = glow[y0 - gy:y1 - gy, x0 - gx:x1 - gx].astype(np.float32)[..., None]
-                tint = np.array(self.palette[1], np.float32) / 255.0 * 0.9
-                canvas[y0:y1, x0:x1] = np.clip(roi + spr * tint, 0, 255).astype(np.uint8)
+                roi = canvas[y0:y1, x0:x1]
+                spr = glow[y0 - gy:y1 - gy, x0 - gx:x1 - gx]
+                canvas[y0:y1, x0:x1] = cv2.add(roi, spr)
 
         # ---- 花茎（二次贝塞尔弯曲） + 叶片 ----
         ts = np.linspace(0, 1, 24)[:, None]

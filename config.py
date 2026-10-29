@@ -15,10 +15,13 @@ CAMERA_FPS = 30           # 采集帧率（仅作为摄像头提示值）
 HAND_MAX_NUM = 2          # 最多检测的手数（2 = 支持双手交互附加分）
 HAND_DET_CONF = 0.6       # 手部检测置信度阈值
 HAND_TRACK_CONF = 0.5     # 手部追踪置信度阈值
+HAND_MODEL_COMPLEXITY = 0  # 0=轻量模型(推荐,推理更快) 1=完整模型；均输出21关键点
 # 逆光/暗光鲁棒性：降低置信度阈值可提高召回，但可能引入误检；现场可按光照调整
 
-POSE_ENABLE_DEFAULT = False   # 是否默认启用手臂姿态（--pose 开启，耗时会增加）
-POSE_MODEL_COMPLEXITY = 1     # Pose 模型复杂度 0(轻量)/1(完整)
+POSE_ENABLE_DEFAULT = True    # 默认启用手臂骨骼绘制（轻量化推理后开销可接受）
+POSE_MODEL_COMPLEXITY = 0     # Pose 模型复杂度 0(轻量,推荐)/1(完整)
+POSE_INPUT_W = 320            # Pose 推理输入降采样宽度（关键点为归一化坐标）
+POSE_CADENCE = 3              # 隔 N 帧推理一次，中间帧复用上次手臂点（手臂运动慢）
 
 # ---------------- 手势特征 ----------------
 # 伸展度原始值 = 5 指指尖相对掌心距离 / 掌径 的均值
@@ -53,7 +56,6 @@ SPRING_STIFFNESS = 120.0  # 弹簧刚度（绽放微过冲，增加灵动感）
 SPRING_DAMPING = 14.0     # 弹簧阻尼
 
 FLOWER_SCALE = 1.0        # 花朵基础缩放
-TWO_HAND_SCALE = True     # 双手交互：双手间距控制花朵大小（附加分）
 
 # ---------------- UI / 窗口 ----------------
 WINDOW_W = 1280
