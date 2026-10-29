@@ -160,6 +160,52 @@ def test_flower_render_states():
     print("  [通过] 五瓣花渲染器三种状态")
 
 
+def _shift_hand(hand_list, dx):
+    """水平平移合成手部关键点（构造第二只手）。"""
+    class Hand:
+        def __init__(self, lms):
+            self.landmark = lms
+
+    class LM:
+        def __init__(self, x, y, z=0.0):
+            self.x, self.y, self.z = x, y, z
+
+    src = hand_list[0].landmark
+    return [Hand([LM(p.x + dx, p.y) for p in src])]
+
+
+def test_mapper_two_flowers():
+    """双手同屏 -> 两朵花独立开合（左手盛开、右手花苞）。"""
+    m = GestureMapper(cfg, make_smoother("kalman", cfg))
+    left_open = _shift_hand(_synth_landmarks(1.0), -0.2)
+    right_fist = _shift_hand(_synth_landmarks(0.0), +0.25)
+    two_hands = left_open + right_fist
+    feats = extract_features(two_hands, cfg)
+    assert feats.n_hands == 2 and len(feats.hands) == 2
+    for _ in range(120):
+        out = m.update(extract_features(two_hands, cfg), 0.033)
+    assert out.n_flowers == 2, "双手应切换为双花模式"
+    assert out.flowers[0].bloom > 0.8, f"左花应盛开, 实际 {out.flowers[0].bloom:.2f}"
+    assert out.flowers[1].bloom < 0.2, f"右花应收拢, 实际 {out.flowers[1].bloom:.2f}"
+    assert len(out.render_items) == 2
+    # 收起一只手 -> 回到单花模式
+    for _ in range(30):
+        out = m.update(extract_features(left_open, cfg), 0.033)
+    assert out.n_flowers == 1
+    print(f"  [通过] 双花模式: 独立开合与 2->1 模式切换 "
+          f"(末帧左花 {out.flowers[0].bloom:.2f})")
+
+
+def test_flower_render_multi():
+    r = FlowerRenderer(w=320, h=330)
+    img2 = r.render_multi([(1.0, -0.45, 0.75), (0.0, 0.45, 0.75)], t=1.0)
+    assert img2.shape == (330, 320, 3)
+    assert img2.std() > 10, "双花画面不应是纯黑"
+    img1 = r.render_multi([(0.6, 0.0, 1.0)], t=1.0)
+    assert img1.std() > 10
+    print("  [通过] 双花渲染")
+
+
 if __name__ == "__main__":
     import numpy as np  # noqa: F401  (供测试环境)
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]

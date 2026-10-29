@@ -86,7 +86,7 @@ def main():
     args = parse_args()
     print("=" * 56)
     print("  隔空手势动态交互系统 —— 五瓣花盛开")
-    print("  握拳=花苞  张开=盛开  捏合=换花色  双手拉开=变大")
+    print("  握拳=花苞  张开=盛开  捏合=换花色  双手=双花各手控一朵")
     print("=" * 56)
 
     source = VideoSource(args)
@@ -153,8 +153,7 @@ def main():
                 flower._bg = flower._make_background()  # 背景色同步换
 
             # ================= 渲染层 =================
-            panel = flower.render(params.bloom, params.pos_x,
-                                  params.scale, t=now)
+            panel = flower.render_multi(params.render_items, t=now)
 
             stats = {
                 "fps": perf.fps,
@@ -163,6 +162,8 @@ def main():
                 "smooth_on": smooth_on,
                 "smoother_name": mapper.smoother_name,
                 "hand_lost": params.hand_lost,
+                "n_hands": feats.n_hands,
+                "n_flowers": params.n_flowers,
                 "pose_on": pose is not None,
                 "palette_name": palette_name,
             }

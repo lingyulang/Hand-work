@@ -44,7 +44,7 @@ class FlowerRenderer:
         self.particles = ParticleSystem()
         self._glow = self._make_glow_sprite()
         self._bg = self._make_background()
-        self._sway = 0.0  # 花茎摆动的内部平滑值
+        self._sways = [0.0, 0.0]  # 每朵花独立的摆动平滑值（最多双花）
 
     # ---------------- 调色板 ----------------
     @property
@@ -125,26 +125,45 @@ class FlowerRenderer:
 
     # ---------------- 主渲染 ----------------
     def render(self, bloom, pos_x=0.0, scale=1.0, t=0.0):
-        """渲染一帧。
+        """渲染单朵花（兼容接口）。"""
+        return self.render_multi([(bloom, pos_x, scale)], t=t)
 
-        Parameters
-        ----------
-        bloom : float  绽放度 0~1（映射层输出的显示值）
-        pos_x : float  -1~1 手部水平位置（驱动花茎摆动）
-        scale : float  花朵缩放（双手交互）
-        t     : float  当前时间（秒），用于缓摆与粒子
+    def render_multi(self, items, t=0.0):
+        """渲染 1~2 朵花。
+
+        items : [(bloom, pos_x, scale_rel), ...]
+                双花时分别绘制在面板左右 27%/73% 处。
         """
         canvas = self._bg.copy()
+        if len(items) <= 1:
+            b, px, s = items[0] if items else (0.35, 0.0, 1.0)
+            self._draw_flower(canvas, 0, b, px, s, t, home_x=0.5)
+        else:
+            self._draw_flower(canvas, 0, items[0][0], items[0][1],
+                              items[0][2], t, home_x=0.27)
+            self._draw_flower(canvas, 1, items[1][0], items[1][1],
+                              items[1][2], t, home_x=0.73)
+        self.particles.update(1 / 30.0, self.w, self.h)
+        self.particles.draw(canvas)
+        return canvas
+
+    def _draw_flower(self, canvas, idx, bloom, pos_x=0.0, scale=1.0, t=0.0,
+                     home_x=0.5):
+        """在画布上绘制一朵五瓣花（含茎、叶、光晕、花蕊）。
+
+        idx : 花朵槽位号（每朵花独立的摆动平滑状态）
+        home_x : 花朵基准水平位置（面板宽度比例 0~1）
+        """
         w, h = self.w, self.h
 
         # 手部位置 -> 花茎摆动（渲染层内再做一次轻度平滑）
-        self._sway += (pos_x - self._sway) * 0.12
-        sway = self._sway
+        self._sways[idx] += (pos_x - self._sways[idx]) * 0.12
+        sway = self._sways[idx]
 
         base = self.scale_base * scale
-        cx = w / 2 + sway * w * 0.06          # 花头随摆动轻微移动
+        cx = w * home_x + sway * w * 0.06    # 花头随摆动轻微移动
         cy = h * 0.44
-        stem_base_x = w / 2
+        stem_base_x = w * home_x
         stem_base_y = h - 8
 
         # ---- 光晕（盛开时） ----
@@ -222,7 +241,5 @@ class FlowerRenderer:
         # ---- 粒子：完全盛开时飘落花瓣 ----
         if bloom > 0.85 and np.random.rand() < 0.35:
             self.particles.emit(cx, cy, [self.palette[1], self.palette[2]])
-        self.particles.update(1 / 30.0, w, h)
-        self.particles.draw(canvas)
 
         return canvas

@@ -119,7 +119,9 @@ class AppUI:
 
         # 状态与提示
         state = "盛开" if bloom > 0.8 else ("绽放中" if bloom > 0.25 else "花苞")
-        jobs.append((f"状态: {state}", (680, H - bar + 36), 15, _CYAN, False))
+        nf = stats.get("n_flowers", 1)
+        state_txt = f"状态: {state}" + (f" x{nf} (双手各控一朵)" if nf == 2 else "")
+        jobs.append((state_txt, (680, H - bar + 36), 15, _CYAN, False))
         jobs.append(("[S]平滑开关 [M]算法 [C]花色 [P]手臂 [H]帮助 [Q]退出",
                      (16, H - bar + 38), 14, _GRAY, False))
 
@@ -139,7 +141,7 @@ class AppUI:
             "  握拳 = 花苞   张开手掌 = 盛开",
             "  移动手掌     = 花茎随之摆动",
             "  拇指食指捏合 = 切换花色 (或按 C)",
-            "  双手拉开     = 花朵变大 (附加功能)",
+            "  双手同屏     = 左右双花, 各手控制一朵 (附加功能)",
             "",
             "按键: S 平滑开关 | M 切换EMA/卡尔曼",
             "      P 手臂姿态 | H 帮助 | Q/ESC 退出",
